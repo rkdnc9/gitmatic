@@ -66,7 +66,7 @@ the end product.
 
 - **Hosting (Rajiv):** GitHub Pages (`rkdnc9.github.io/gitmatic`), so the app
   must work under a sub-path and with no server-side routing.
-- **Repo (Rajiv):** `rkdnc9/gitmatic` (currently empty).
+- **Repo (Rajiv):** `rkdnc9/gitmatic` (currently empty, public).
 - **Stack (Rajiv):** React, using the latest, most efficient, well-proven
   libraries.
 - **Engine (Rajiv):** a simulated git engine (not real git compiled to the
@@ -74,9 +74,8 @@ the end product.
   and the visualization needs to know every step. Covers everyday commands only,
   with small toy files.
 - **No backend (Rajiv).** Persistence = browser storage only.
-- **Repo visibility:** `rkdnc9/gitmatic` is currently private. GitHub Pages
-  from a private repo needs a paid GitHub plan; otherwise the repo must be
-  public. *(Open question for Rajiv.)*
+- **Repo visibility (Rajiv):** `rkdnc9/gitmatic` is public, so GitHub Pages
+  works on the free plan.
 
 ## 4. Stack (Devin's call)
 
