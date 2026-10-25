@@ -18,9 +18,9 @@ export default function FilePanel() {
 
   if (files.length === 0) {
     return (
-      <div className="flex h-40 flex-col items-center justify-center gap-2 rounded-xl border border-zinc-700 bg-zinc-900/40">
-        <p className="text-sm text-zinc-400">No files</p>
-        <p className="text-xs text-zinc-600">
+      <div className="flex h-40 flex-col items-center justify-center gap-2 rounded-xl border border-[color:var(--border)] bg-[color:var(--panel)]">
+        <p className="text-sm text-[color:var(--muted)]">No files</p>
+        <p className="text-xs text-[color:var(--muted)]">
           Create one, e.g. <code className="font-mono">echo "hi" &gt; notes.txt</code>
         </p>
       </div>
@@ -31,7 +31,7 @@ export default function FilePanel() {
     <div
       role="list"
       aria-label="Files"
-      className="overflow-hidden rounded-xl border border-zinc-700 bg-zinc-900/40"
+      className="overflow-hidden rounded-xl border border-[color:var(--border)] bg-[color:var(--panel)]"
     >
       {files.map((f) => {
         const active = f === editorPath
@@ -44,11 +44,11 @@ export default function FilePanel() {
             aria-current={active || undefined}
             className={`flex w-full items-center gap-2 px-3 py-1.5 text-left font-mono text-sm ${
               active
-                ? 'bg-zinc-700/60 text-zinc-100'
-                : 'text-zinc-300 hover:bg-zinc-800/60'
+                ? 'bg-[color:var(--chip-bg)] text-[color:var(--fg)]'
+                : 'text-[color:var(--fg)] hover:bg-[color:var(--chip-bg)]'
             }`}
           >
-            <span className={active ? 'text-zinc-100' : 'text-zinc-500'}>{active ? '●' : '○'}</span>
+            <span className={active ? 'text-[color:var(--accent)]' : 'text-[color:var(--muted)]'}>{active ? '●' : '○'}</span>
             {f}
           </button>
         )
