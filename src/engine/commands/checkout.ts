@@ -26,6 +26,7 @@ export function performSwitch(ctx: Ctx, newHead: Head, target: Sha | null): void
   const repo = requireRepo(ctx.w)
   const wt = repo.worktrees[ctx.w.cwd]
   if (!wt) throw new GitError('fatal: not a git repository (or any of the parent directories): .git')
+  if (wt.pending) throw new GitError('error: you need to resolve your current index first')
   const oldHead = wt.head
   const n = strandedCount(repo, oldHead)
   if (n > 0) {

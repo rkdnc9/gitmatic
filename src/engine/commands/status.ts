@@ -1,6 +1,6 @@
 import { registerGit } from '../run'
 import type { Ctx } from '../run'
-import { getStatus } from '../status'
+import { getStatus, unmergedLabels } from '../status'
 import type { StatusEntry } from '../status'
 import { requireRepo } from '../world'
 import type { Repo, WorktreeState } from '../types'
@@ -9,6 +9,14 @@ const LABELS: Record<string, string> = {
   added: 'new file:   ',
   modified: 'modified:   ',
   deleted: 'deleted:    ',
+}
+
+// git pads unmerged-path labels to a fixed width so the paths line up.
+const UNMERGED: Record<string, string> = {
+  'both modified': 'both modified:   ',
+  'deleted by us': 'deleted by us:   ',
+  'deleted by them': 'deleted by them: ',
+  'both added': 'both added:      ',
 }
 
 /** Is the worktree on a branch that has commits (vs an unborn branch)? */
@@ -37,6 +45,10 @@ registerGit('status', (ctx) => {
   const entries = getStatus(ctx.w)
   const committed = wt ? hasHead(repo, wt) : false
   const unborn = wt?.head.type === 'branch' && !committed
+  const pending = wt?.pending ?? null
+  const mergePending = pending !== null
+  const unmerged = entries.filter((e) => e.conflicted)
+  const unmergedKind = unmergedLabels(ctx.w)
 
   if (wt?.head.type === 'branch') ctx.out(`On branch ${wt.head.name}`)
   else if (wt?.head.type === 'detached') ctx.out(`HEAD detached at ${wt.head.commit}`)
@@ -48,25 +60,51 @@ registerGit('status', (ctx) => {
     ctx.out('')
     ctx.out('No commits yet')
   }
-  const staged = entries.filter((e) => e.index !== null)
-  const unstaged = entries.filter((e) => e.work === 'modified' || e.work === 'deleted')
-  const untracked = entries.filter((e) => e.work === 'untracked')
+  // Conflicted paths appear only in the Unmerged section.
+  const clean = entries.filter((e) => !e.conflicted)
+  const staged = clean.filter((e) => e.index !== null)
+  const unstaged = clean.filter((e) => e.work === 'modified' || e.work === 'deleted')
+  const untracked = clean.filter((e) => e.work === 'untracked')
   const unstagedDeletion = unstaged.some((e) => e.work === 'deleted')
 
-  if (staged.length === 0 && unstaged.length === 0 && untracked.length === 0) {
+  const allQuiet =
+    staged.length === 0 &&
+    unstaged.length === 0 &&
+    untracked.length === 0 &&
+    unmerged.length === 0
+
+  if (allQuiet) {
     if (unborn) {
       ctx.out('')
       ctx.out('nothing to commit (create/copy files and use "git add" to track)')
+    } else if (mergePending) {
+      // All conflicts resolved but the merge is not yet committed.
+      ctx.out('')
+      ctx.out('All conflicts fixed but you are still merging.')
+      ctx.out('  (use "git commit" to conclude merge)')
+      ctx.out('')
     } else {
       ctx.out('nothing to commit, working tree clean')
     }
     return
   }
 
+  if (mergePending) {
+    if (unmerged.length > 0) {
+      ctx.out('You have unmerged paths.')
+      ctx.out('  (fix conflicts and run "git commit")')
+      ctx.out('  (use "git merge --abort" to abort the merge)')
+    } else {
+      ctx.out('All conflicts fixed but you are still merging.')
+      ctx.out('  (use "git commit" to conclude merge)')
+    }
+    needsBlank = true
+  }
+
   if (staged.length > 0) {
     section(
       ctx,
-      needsBlank,
+      needsBlank || mergePending,
       'Changes to be committed:',
       [committed
         ? '  (use "git restore --staged <file>..." to unstage)'
@@ -74,6 +112,24 @@ registerGit('status', (ctx) => {
       staged,
       'index',
     )
+    needsBlank = true
+  }
+
+  if (unmerged.length > 0) {
+    if (needsBlank) ctx.out('')
+    ctx.out('Unmerged paths:')
+    const hasRm = unmerged.some(
+      (e) => unmergedKind[e.path] === 'deleted by us' || unmergedKind[e.path] === 'deleted by them',
+    )
+    ctx.out(
+      hasRm
+        ? '  (use "git add/rm <file>..." as appropriate to mark resolution)'
+        : '  (use "git add <file>..." to mark resolution)',
+    )
+    for (const e of unmerged) {
+      const label = UNMERGED[unmergedKind[e.path] ?? 'both modified'] ?? 'both modified:   '
+      ctx.out(`\t${label}${e.path}`)
+    }
     needsBlank = true
   }
 
@@ -104,10 +160,10 @@ registerGit('status', (ctx) => {
   ctx.out('')
   // git only prints a summary line when nothing is staged.
   if (staged.length === 0) {
-    if (unstaged.length === 0) {
-      ctx.out('nothing added to commit but untracked files present (use "git add" to track)')
-    } else {
+    if (unstaged.length > 0 || unmerged.length > 0) {
       ctx.out('no changes added to commit (use "git add" and/or "git commit -a")')
+    } else if (untracked.length > 0) {
+      ctx.out('nothing added to commit but untracked files present (use "git add" to track)')
     }
   }
 })

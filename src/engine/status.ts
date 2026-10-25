@@ -1,3 +1,4 @@
+import { mergeBase } from './revs'
 import type { World } from './types'
 import { workdir } from './world'
 
@@ -33,6 +34,7 @@ export function getStatus(w: World): StatusEntry[] {
     ...Object.keys(headTree),
     ...Object.keys(index),
     ...Object.keys(work),
+    ...conflictedPaths,
   ])
   const entries: StatusEntry[] = []
 
@@ -51,7 +53,7 @@ export function getStatus(w: World): StatusEntry[] {
     else if (inIndex && !inWork) workState = 'deleted'
     else if (inIndex && inWork && work[path] !== index[path]) workState = 'modified'
 
-    if (indexState === null && workState === null) continue
+    if (indexState === null && workState === null && !conflictedPaths.has(path)) continue
     entries.push({
       path,
       index: indexState,
@@ -62,4 +64,32 @@ export function getStatus(w: World): StatusEntry[] {
 
   entries.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0))
   return entries
+}
+
+/**
+ * The git unmerged-path label for each conflicted path during a merge
+ * ("both modified", "deleted by us"/"them", "both added"), comparing the
+ * merge-base, HEAD and MERGE_HEAD trees. {} when no merge is pending.
+ */
+export function unmergedLabels(w: World): Record<string, string> {
+  const repo = w.repo
+  const wt = repo?.worktrees[w.cwd]
+  const pending = wt?.pending
+  if (!repo || !wt || !pending || pending.type !== 'merge') return {}
+  const head = wt.head.type === 'branch' ? (repo.branches[wt.head.name] ?? null) : wt.head.commit
+  const oursTree = head ? (repo.commits[head]?.tree ?? {}) : {}
+  const theirsTree = repo.commits[pending.theirs]?.tree ?? {}
+  const mb = head !== null ? mergeBase(repo, head, pending.theirs) : null
+  const baseTree = mb ? (repo.commits[mb]?.tree ?? {}) : {}
+  const labels: Record<string, string> = {}
+  for (const path of pending.conflicts) {
+    const inBase = Object.hasOwn(baseTree, path)
+    const inOurs = Object.hasOwn(oursTree, path)
+    const inTheirs = Object.hasOwn(theirsTree, path)
+    if (!inBase) labels[path] = 'both added'
+    else if (!inOurs && inTheirs) labels[path] = 'deleted by us'
+    else if (inOurs && !inTheirs) labels[path] = 'deleted by them'
+    else labels[path] = 'both modified'
+  }
+  return labels
 }
