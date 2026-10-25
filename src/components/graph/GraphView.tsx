@@ -86,8 +86,8 @@ export default function GraphView() {
   // Empty state: no repo, or a repo with no commits yet.
   if (!layout || layout.nodes.length === 0) {
     return (
-      <div className="flex h-40 items-center justify-center rounded-xl border border-dashed border-zinc-600 bg-zinc-900/40">
-        <p className="text-sm text-zinc-400">Run git init to start a repository</p>
+      <div className="flex h-40 items-center justify-center rounded-xl border border-dashed border-[color:var(--border)] bg-[color:var(--panel)]">
+        <p className="text-sm text-[color:var(--muted)]">Run git init to start a repository</p>
       </div>
     )
   }
@@ -106,11 +106,11 @@ export default function GraphView() {
     <MotionConfig reducedMotion={reduceMotion ? 'always' : 'user'}>
       <div
         ref={containerRef}
-        className="overflow-x-auto rounded-xl border border-zinc-700 bg-zinc-900/40"
+        className="overflow-x-auto rounded-xl border border-[color:var(--border)] bg-[color:var(--panel)]"
       >
         <svg width={width} height={height} role="img" aria-label="Commit graph">
           {/* Edges: smooth cubic beziers from child right-edge to parent left-edge. */}
-          <g stroke="currentColor" className="text-zinc-500" fill="none" strokeWidth={1.5}>
+          <g stroke="currentColor" className="text-[color:var(--edge)]" fill="none" strokeWidth={1.5}>
             {layout.edges.map((e) => {
               const c = pos[e.child]
               const p = pos[e.parent]
@@ -150,19 +150,22 @@ export default function GraphView() {
                 >
                   <circle
                     r={NODE_R}
-                    fill={highlighted ? '#fbbf24' : '#3f3f46'}
-                    stroke={highlighted ? '#f59e0b' : '#a1a1aa'}
+                    style={
+                      highlighted
+                        ? { fill: '#fbbf24', stroke: '#f59e0b' }
+                        : { fill: 'var(--node)', stroke: 'var(--node-stroke)' }
+                    }
                     strokeWidth={2}
                   />
                   <text
                     x={0}
                     y={20}
                     textAnchor="middle"
-                    className="fill-zinc-300 font-mono text-[11px]"
+                    className="fill-[color:var(--fg)] font-mono text-[11px]"
                   >
                     {n.id.slice(0, 7)}
                   </text>
-                  <text x={0} y={34} textAnchor="middle" className="fill-zinc-500 text-[11px]">
+                  <text x={0} y={34} textAnchor="middle" className="fill-[color:var(--muted)] text-[11px]">
                     {msg}
                   </text>
                 </motion.g>
@@ -183,23 +186,23 @@ export default function GraphView() {
               const fill =
                 l.kind === 'branch'
                   ? l.current
-                    ? '#18181b'
-                    : '#27272a'
+                    ? 'var(--pill)'
+                    : 'var(--chip-bg)'
                   : l.kind === 'head'
                     ? layout.detached
                       ? '#3f1d1d'
                       : '#3b2c0f'
-                    : '#18181b'
+                    : 'var(--pill)'
               const stroke =
                 l.kind === 'branch'
                   ? l.current
                     ? '#fbbf24'
-                    : '#71717a'
+                    : 'var(--muted)'
                   : l.kind === 'head'
                     ? layout.detached
                       ? '#f87171'
                       : '#f59e0b'
-                    : '#a1a1aa'
+                    : 'var(--node-stroke)'
               return (
                 <motion.g
                   key={`${l.kind}:${l.name}`}
@@ -218,15 +221,14 @@ export default function GraphView() {
                       width={w}
                       height={h}
                       rx={h / 2}
-                      fill={fill}
-                      stroke={stroke}
+                      style={{ fill, stroke }}
                       strokeWidth={l.current || isHead ? 2 : 1.2}
                     />
                     {isHead && (
                       <path
                         d={`M ${-w / 2 + 5} ${h / 2 - 4} L ${-w / 2 + 9} ${h / 2} L ${-w / 2 + 5} ${h / 2 + 4}`}
                         fill="none"
-                        stroke={stroke}
+                        style={{ stroke }}
                         strokeWidth={1.5}
                       />
                     )}
@@ -235,7 +237,7 @@ export default function GraphView() {
                       y={h / 2 + 4}
                       textAnchor="middle"
                       fontWeight={l.current || isHead ? 700 : 400}
-                      className="fill-zinc-100 text-[11px]"
+                      className="fill-[color:var(--pill-fg)] text-[11px]"
                     >
                       {text}
                     </text>
