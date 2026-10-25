@@ -2,6 +2,7 @@
 import './commands'
 
 export type * from './types'
+export { getCompletions } from './completions'
 export { parseArgs, type ArgSpec, type ParsedArgs } from './args'
 export { GitError } from './errors'
 export { commitId } from './hash'

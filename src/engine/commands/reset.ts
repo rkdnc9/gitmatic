@@ -22,7 +22,8 @@ import { normalizePath, requireRepo, workdir } from '../world'
 registerGit('reset', (ctx, argv) => {
   const repo = requireRepo(ctx.w)
   const wt = repo.worktrees[ctx.w.cwd]
-  if (!wt) throw new GitError('fatal: not a git repository (or any of the parent directories): .git')
+  if (!wt)
+    throw new GitError('fatal: not a git repository (or any of the parent directories): .git')
 
   let mode: 'hard' | 'mixed' | 'soft' = 'mixed'
   const positionals: string[] = []
@@ -41,10 +42,13 @@ registerGit('reset', (ctx, argv) => {
     throw new GitError('fatal: Cannot do hard reset with paths.')
 
   const throwAmbiguous = (arg: string): void => {
-    throw new GitError(`fatal: ambiguous argument '${arg}': unknown revision or path not in the working tree.`, [
-      "Use '--' to separate paths from revisions, like this:",
-      "'git <command> [<revision>...] -- [<file>...}'",
-    ])
+    throw new GitError(
+      `fatal: ambiguous argument '${arg}': unknown revision or path not in the working tree.`,
+      [
+        "Use '--' to separate paths from revisions, like this:",
+        "'git <command> [<revision>...] -- [<file>...}'",
+      ],
+    )
   }
 
   // Decide the revision and the pathspecs.
@@ -89,28 +93,41 @@ registerGit('reset', (ctx, argv) => {
     else wt.head = { type: 'detached', commit: resolvedTargetSha }
   }
 
+  const branchName = wt.head.type === 'branch' ? wt.head.name : 'HEAD'
   if (mode === 'hard') {
     wt.index = { ...target }
     ctx.w.files[ctx.w.cwd] = { ...target }
-    if (headSha !== null)
-      ctx.out(`HEAD is now at ${resolvedTargetSha} ${repo.commits[resolvedTargetSha].message.split('\n')[0]}`)
+    if (headSha !== null) {
+      ctx.out(
+        `HEAD is now at ${resolvedTargetSha} ${repo.commits[resolvedTargetSha].message.split('\n')[0]}`,
+      )
+      ctx.note(`Moved ${branchName} to ${resolvedTargetSha}; all local changes are gone`)
+    }
     return
   }
 
-  if (mode === 'mixed') {
-    if (headSha !== null) {
-      if (rev !== null || paths.length === 0) wt.index = { ...target }
-      const work = workdir(ctx.w)
-      const lines: string[] = []
-      for (const f of Object.keys(wt.index)) {
-        if (work[f] !== wt.index[f]) lines.push(`M\t${f}`)
-      }
-      if (lines.length > 0) {
-        lines.sort()
-        ctx.out('Unstaged changes after reset:')
-        for (const l of lines) ctx.out(l)
-      }
+  if (mode === 'soft') {
+    if (headSha !== null && paths.length === 0 && resolvedTargetSha !== headSha)
+      ctx.note(`Moved ${branchName} to ${resolvedTargetSha} (changes stay staged)`)
+    return
+  }
+
+  if (headSha !== null) {
+    if (rev !== null || paths.length === 0) wt.index = { ...target }
+    const work = workdir(ctx.w)
+    const lines: string[] = []
+    for (const f of Object.keys(wt.index)) {
+      if (work[f] !== wt.index[f]) lines.push(`M\t${f}`)
     }
+    if (lines.length > 0) {
+      lines.sort()
+      ctx.out('Unstaged changes after reset:')
+      for (const l of lines) ctx.out(l)
+    }
+    if (paths.length > 0) ctx.note(`Unstaged ${paths.length} file${paths.length === 1 ? '' : 's'}`)
+    else if (rev !== null)
+      ctx.note(`Moved ${branchName} to ${resolvedTargetSha}; changes are now unstaged`)
+    else ctx.note('Unstaged all staged changes')
   }
 })
 
@@ -120,5 +137,9 @@ function knownPath(ctx: Ctx, repo: Repo, wt: WorktreeState, raw: string): boolea
   if (f === null) return false
   const headSha = wt.head.type === 'branch' ? (repo.branches[wt.head.name] ?? null) : wt.head.commit
   const headTree = headSha ? (repo.commits[headSha].tree ?? {}) : {}
-  return Object.hasOwn(wt.index, f) || Object.hasOwn(ctx.w.files[ctx.w.cwd], f) || Object.hasOwn(headTree, f)
+  return (
+    Object.hasOwn(wt.index, f) ||
+    Object.hasOwn(ctx.w.files[ctx.w.cwd], f) ||
+    Object.hasOwn(headTree, f)
+  )
 }

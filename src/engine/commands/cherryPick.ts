@@ -11,10 +11,7 @@ const AUTHOR = 'You <you@gitmatic.dev>'
 const NO_OP = 'error: no cherry-pick or revert in progress'
 
 /** Shared by revert/cherry-pick: commit the resolved pending state. */
-function commitPending(
-  ctx: Ctx,
-  pending: Pending,
-): void {
+function commitPending(ctx: Ctx, pending: Pending): void {
   const repo = requireRepo(ctx.w)
   const wt = repo.worktrees[ctx.w.cwd]!
   const work = workdir(ctx.w)
@@ -22,7 +19,7 @@ function commitPending(
     if (!Object.hasOwn(wt.index, f) || !Object.hasOwn(work, f) || wt.index[f] !== work[f])
       throw new GitError([
         'error: Committing is not possible because you have unmerged files.',
-        'hint: Fix them up in the work tree, and then use \'git add/rm <file>\' as appropriate',
+        "hint: Fix them up in the work tree, and then use 'git add/rm <file>' as appropriate",
         'hint: to mark resolution.',
         `fatal: ${pending.type} failed`,
       ])
@@ -33,7 +30,14 @@ function commitPending(
     [parents.join(','), JSON.stringify(tree), pending.message, String(ctx.w.clock)].join('|'),
     (c) => Object.hasOwn(repo.commits, c),
   )
-  const commit: Commit = { id, parents, message: pending.message, author: AUTHOR, time: ctx.w.clock, tree }
+  const commit: Commit = {
+    id,
+    parents,
+    message: pending.message,
+    author: AUTHOR,
+    time: ctx.w.clock,
+    tree,
+  }
   repo.commits[id] = commit
   const branch = wt.head.type === 'branch' ? wt.head.name : 'detached HEAD'
   if (wt.head.type === 'branch') repo.branches[wt.head.name] = id
@@ -41,6 +45,7 @@ function commitPending(
   wt.index = { ...tree }
   wt.pending = null
   ctx.out(`[${branch} ${id}] ${pending.message.split('\n')[0]}`)
+  ctx.note(`Cherry-picked a commit on ${branch} (${id})`)
 }
 
 /**
@@ -51,14 +56,16 @@ function commitPending(
 registerGit('cherry-pick', (ctx, argv) => {
   const repo = requireRepo(ctx.w)
   const wt = repo.worktrees[ctx.w.cwd]
-  if (!wt) throw new GitError('fatal: not a git repository (or any of the parent directories): .git')
+  if (!wt)
+    throw new GitError('fatal: not a git repository (or any of the parent directories): .git')
 
   let action: 'run' | 'continue' | 'abort' = 'run'
   let revArg: string | null = null
   for (const a of argv) {
     if (a === '--continue') action = 'continue'
     else if (a === '--abort' || a === '--skip') action = 'abort'
-    else if (a.startsWith('-')) throw new GitError(`error: unknown option '${a.replace(/^--/, '')}'`)
+    else if (a.startsWith('-'))
+      throw new GitError(`error: unknown option '${a.replace(/^--/, '')}'`)
     else revArg = a
   }
 
@@ -74,6 +81,7 @@ registerGit('cherry-pick', (ctx, argv) => {
     if (p.preWork !== null) ctx.w.files[ctx.w.cwd] = { ...p.preWork }
     wt.index = { ...repo.commits[p.origHead].tree }
     wt.pending = null
+    ctx.note('Aborted the cherry-pick; restored the previous state')
     return
   }
 
@@ -145,6 +153,7 @@ registerGit('cherry-pick', (ctx, argv) => {
     base: c.parents[0] ?? '',
     preWork,
   }
+  ctx.note(`Cherry-pick conflicts in ${sorted.length} file${sorted.length === 1 ? '' : 's'}`)
 })
 
 /** Standard three-way merge; returns the merged tree + any conflict paths. */
@@ -166,7 +175,8 @@ function threeWay(
     const theirsChanged = t !== b
     if (oursChanged && theirsChanged && o !== t) {
       conflicts.push(f)
-      tree[f] = `<<<<<<< HEAD\n${o !== undefined ? o : ''}\n=======\n${t !== undefined ? t : ''}\n>>>>>>> ${theirSha.slice(0, 7)} (${theirMsg.split('\n')[0]})\n`
+      tree[f] =
+        `<<<<<<< HEAD\n${o !== undefined ? o : ''}\n=======\n${t !== undefined ? t : ''}\n>>>>>>> ${theirSha.slice(0, 7)} (${theirMsg.split('\n')[0]})\n`
     } else if (oursChanged && !theirsChanged) {
       if (o !== undefined) tree[f] = o
     } else if (theirsChanged && !oursChanged) {
