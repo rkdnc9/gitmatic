@@ -79,6 +79,34 @@ registerGit('commit', (ctx, argv) => {
 
   const head = headCommit(repo, wt)
   if (amend && !head) throw new GitError('fatal: You have nothing to amend.')
+  // A merge in progress: conclude it into a two-parent merge commit.
+  if (wt.pending) {
+    if (wt.pending.conflicts.length > 0) {
+      throw new GitError('error: Committing is not possible because you have unmerged files.')
+    }
+    if (head === null) throw new GitError('fatal: not a valid object name: HEAD')
+    const mergeParents: Sha[] = [head, wt.pending.theirs]
+    const mergeTree = { ...wt.index }
+    const mergeMsg = message ?? wt.pending.message
+    const mergeId = commitId(
+      seedFor(mergeParents, mergeTree, mergeMsg, ctx.w.clock),
+      (c) => Object.hasOwn(repo.commits, c) && c !== head,
+    )
+    repo.commits[mergeId] = {
+      id: mergeId,
+      parents: mergeParents,
+      message: mergeMsg,
+      author: AUTHOR,
+      time: ctx.w.clock,
+      tree: mergeTree,
+    }
+    if (wt.head.type === 'branch') repo.branches[wt.head.name] = mergeId
+    else wt.head = { type: 'detached', commit: mergeId }
+    wt.pending = null
+    ctx.out(`[${wt.head.type === 'branch' ? wt.head.name : 'detached HEAD'} ${mergeId}] ${mergeMsg.split('\n')[0]}`)
+    ctx.note(`Merged into ${wt.head.type === 'branch' ? wt.head.name : 'HEAD'} (${mergeId})`)
+    return
+  }
 
   if (auto) autoStage(ctx, wt)
 

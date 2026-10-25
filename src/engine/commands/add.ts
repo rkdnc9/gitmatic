@@ -9,6 +9,11 @@ function stagePath(ctx: Ctx, wt: WorktreeState, path: string): void {
   const work = workdir(ctx.w)
   if (Object.hasOwn(work, path)) wt.index[path] = work[path]
   else delete wt.index[path]
+  // Staging a file during a merge marks that path resolved.
+  if (wt.pending) {
+    const i = wt.pending.conflicts.indexOf(path)
+    if (i >= 0) wt.pending.conflicts.splice(i, 1)
+  }
 }
 
 registerGit('add', (ctx, argv) => {
