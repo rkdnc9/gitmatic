@@ -180,26 +180,24 @@ registerGit('stash', (ctx, argv) => {
     }
   }
 
-  // Apply staged (index vs base) + unstaged (workdir vs index) intents from the stash.
-  const newIndex: Tree = { ...indexNow }
+  // Apply the stashed changes to the WORKDIR only, as unstaged changes. A default stash
+  // (no --index) does not restore the index: the index stays where it was, and the
+  // stashed staged portion comes back as working-tree changes (verified against real git:
+  // `stash pop` after a staged change yields ` M f`, never `M  f`, and `diff --cached` is empty).
   const newWork: Tree = { ...workNow }
   for (const f of keys) {
     const baseVal = baseTree[f]
-    const eIdx = entry.index[f]
     const eWork = entry.workdir[f]
-    const stagedChanged = presenceDiff(eIdx, baseVal)
-    if (stagedChanged) {
-      if (eIdx === undefined) delete newIndex[f]
-      else newIndex[f] = eIdx
+    const eIdx = entry.index[f]
+    const target = eWork !== undefined ? eWork : eIdx
+    if (target === undefined) {
+      // The stash deleted f (staged or unstaged delete): remove it from the workdir.
+      if (baseVal !== undefined) delete newWork[f]
+      continue
     }
-    if (eWork !== undefined ? eWork !== eIdx : presenceDiff(undefined, eIdx)) {
-      if (eWork === undefined) delete newWork[f]
-      else newWork[f] = eWork
-    } else if (stagedChanged) {
-      newWork[f] = eIdx
-    }
+    if (presenceDiff(target, baseVal)) newWork[f] = target
   }
-  wt.index = newIndex
+  // The index is left untouched (real git: default stash pop/apply never restages).
   ctx.w.files[ctx.w.cwd] = newWork
   if (sub === 'pop') {
     repo.stash.splice(found.index, 1)

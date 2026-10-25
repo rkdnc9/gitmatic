@@ -222,7 +222,10 @@ describe('git stash', () => {
     // pop restores
     const r = exec([...setup, 'git stash pop'])
     expect(text(r.last)).toContain('Dropped refs/stash@{0}')
-    expect(text(exec([...setup, 'git stash pop', 'git diff --staged']).last)).toContain('+a2')
+    // A default pop restores the change as UNSTAGED (index stays at HEAD): nothing staged,
+    // and the working tree holds the newest content.
+    expect(text(exec([...setup, 'git stash pop', 'git diff --staged']).last)).toBe('')
+    expect(text(exec([...setup, 'git stash pop', 'git diff']).last)).toContain('+a3')
     expect(text(exec([...setup, 'git stash pop', 'cat a.txt']).last)).toContain('a3')
     // empty after pop
     expect(text(exec([...setup, 'git stash pop', 'git stash list']).last)).toBe('')
