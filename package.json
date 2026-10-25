@@ -14,8 +14,10 @@
     "format": "prettier --write ."
   },
   "dependencies": {
+    "@uiw/react-codemirror": "^4.25.12",
     "diff": "^9.0.0",
     "immer": "^11.1.21",
+    "motion": "^14.6.0",
     "node-diff3": "^3.2.1",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
