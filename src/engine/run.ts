@@ -20,12 +20,15 @@ const gitCommands = new Map<string, CommandFn>()
 export function registerGit(name: string, fn: CommandFn): void {
   gitCommands.set(name, fn)
 }
+export function listGitCommands(): string[] {
+  return [...gitCommands.keys()]
+}
 
 /** Every subcommand in the spec's v1 scope (§6.2); ones not registered yet get a friendly "not yet". */
 const PLANNED = new Set([
   'init', 'clone', 'status', 'add', 'commit', 'log', 'diff', 'restore', 'switch', 'checkout',
   'branch', 'merge', 'rebase', 'revert', 'reset', 'stash', 'tag', 'remote', 'fetch', 'pull',
-  'push', 'cherry-pick', 'worktree', 'show', 'help',
+  'push', 'cherry-pick', 'worktree', 'show',
 ]) // prettier-ignore
 
 const RARELY_NEEDED = "it's rarely needed day to day"
@@ -71,7 +74,14 @@ function resolveGit(argv: string[]): Resolved {
     throw new GitError(`unknown option: ${sub}`, [usage[0].text, usage[1].text])
   }
   const fn = gitCommands.get(sub)
-  if (fn) return { kind: 'run', fn, argv: argv.slice(1) }
+  if (fn) {
+    const rest = argv.slice(1)
+    if (rest.includes('--help') || rest.includes('-h')) {
+      const help = gitCommands.get('help')
+      if (help) return { kind: 'run', fn: help, argv: [sub] }
+    }
+    return { kind: 'run', fn, argv: rest }
+  }
   const reason = NOT_SIMULATED.get(sub)
   if (reason) {
     return { kind: 'info', lines: [out(`gitmatic doesn't simulate 'git ${sub}' — ${reason}.`)] }

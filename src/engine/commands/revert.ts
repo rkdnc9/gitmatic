@@ -22,7 +22,7 @@ function commitPending(ctx: Ctx, pending: Pending): void {
     if (!Object.hasOwn(wt.index, f) || !Object.hasOwn(work, f) || wt.index[f] !== work[f])
       throw new GitError([
         'error: Reverting is not possible because you have unmerged files.',
-        'hint: Fix them up in the work tree, and then use \'git add/rm <file>\'',
+        "hint: Fix them up in the work tree, and then use 'git add/rm <file>'",
         'hint: as appropriate to mark resolution and make a commit.',
         'fatal: revert failed',
       ])
@@ -33,7 +33,14 @@ function commitPending(ctx: Ctx, pending: Pending): void {
     [parents.join(','), JSON.stringify(tree), pending.message, String(ctx.w.clock)].join('|'),
     (c) => Object.hasOwn(repo.commits, c),
   )
-  const commit: Commit = { id, parents, message: pending.message, author: AUTHOR, time: ctx.w.clock, tree }
+  const commit: Commit = {
+    id,
+    parents,
+    message: pending.message,
+    author: AUTHOR,
+    time: ctx.w.clock,
+    tree,
+  }
   repo.commits[id] = commit
   const branch = wt.head.type === 'branch' ? wt.head.name : 'detached HEAD'
   if (wt.head.type === 'branch') repo.branches[wt.head.name] = id
@@ -41,6 +48,7 @@ function commitPending(ctx: Ctx, pending: Pending): void {
   wt.index = { ...tree }
   wt.pending = null
   ctx.out(`[${branch} ${id}] ${pending.message.split('\n')[0]}`)
+  ctx.note(`Reverted ${pending.base.slice(0, 7)} on ${branch} (${id})`)
 }
 
 /**
@@ -51,14 +59,16 @@ function commitPending(ctx: Ctx, pending: Pending): void {
 registerGit('revert', (ctx, argv) => {
   const repo = requireRepo(ctx.w)
   const wt = repo.worktrees[ctx.w.cwd]
-  if (!wt) throw new GitError('fatal: not a git repository (or any of the parent directories): .git')
+  if (!wt)
+    throw new GitError('fatal: not a git repository (or any of the parent directories): .git')
 
   let action: 'run' | 'continue' | 'abort' = 'run'
   let revArg: string | null = null
   for (const a of argv) {
     if (a === '--continue') action = 'continue'
     else if (a === '--abort' || a === '--skip') action = 'abort'
-    else if (a.startsWith('-')) throw new GitError(`error: unknown option '${a.replace(/^--/, '')}'`)
+    else if (a.startsWith('-'))
+      throw new GitError(`error: unknown option '${a.replace(/^--/, '')}'`)
     else revArg = a
   }
 
@@ -74,6 +84,7 @@ registerGit('revert', (ctx, argv) => {
     if (p.preWork !== null) ctx.w.files[ctx.w.cwd] = { ...p.preWork }
     wt.index = { ...repo.commits[p.origHead].tree }
     wt.pending = null
+    ctx.note('Aborted the revert; restored the previous state')
     return
   }
 
@@ -144,6 +155,7 @@ registerGit('revert', (ctx, argv) => {
     base: c.id,
     preWork,
   }
+  ctx.note(`Revert conflicts in ${sorted.length} file${sorted.length === 1 ? '' : 's'}`)
 })
 
 /** Standard three-way merge; returns the merged tree + any conflict paths. */
@@ -166,7 +178,8 @@ function threeWay(
     if (oursChanged && theirsChanged && o !== t) {
       // both sides changed the file differently: content conflict.
       conflicts.push(f)
-      tree[f] = `<<<<<<< HEAD\n${o !== undefined ? o : ''}\n=======\n${t !== undefined ? t : ''}\n>>>>>>> ${theirSha.slice(0, 7)} (${theirMsg.split('\n')[0]})\n`
+      tree[f] =
+        `<<<<<<< HEAD\n${o !== undefined ? o : ''}\n=======\n${t !== undefined ? t : ''}\n>>>>>>> ${theirSha.slice(0, 7)} (${theirMsg.split('\n')[0]})\n`
     } else if (oursChanged && !theirsChanged) {
       if (o !== undefined) tree[f] = o
     } else if (theirsChanged && !oursChanged) {

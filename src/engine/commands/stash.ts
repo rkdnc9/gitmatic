@@ -21,7 +21,10 @@ function parseStashRef(raw: string): number | null {
 }
 
 /** Look up a stash entry by ref (default the newest, index 0); null when out of range. */
-function stashByRef(stash: StashEntry[], raw: string | null): { entry: StashEntry; index: number } | null {
+function stashByRef(
+  stash: StashEntry[],
+  raw: string | null,
+): { entry: StashEntry; index: number } | null {
   const n = raw === null ? 0 : parseStashRef(raw)
   if (n === null || n >= stash.length) return null
   return { entry: stash[n], index: n }
@@ -53,14 +56,17 @@ function presenceDiff(a: string | undefined, b: string | undefined): boolean {
 registerGit('stash', (ctx, argv) => {
   const repo = requireRepo(ctx.w)
   const wt = repo.worktrees[ctx.w.cwd]
-  if (!wt) throw new GitError('fatal: not a git repository (or any of the parent directories): .git')
+  if (!wt)
+    throw new GitError('fatal: not a git repository (or any of the parent directories): .git')
 
   let sub: string | null = null
   const rest: string[] = []
   for (const a of argv) {
     if (sub === null && SUBCOMMANDS.has(a)) sub = a
     else if (sub === null && !a.startsWith('-'))
-      throw new GitError(`fatal: subcommand wasn't specified; 'push' can't be assumed due to unexpected token '${a}'`)
+      throw new GitError(
+        `fatal: subcommand wasn't specified; 'push' can't be assumed due to unexpected token '${a}'`,
+      )
     else rest.push(a)
   }
   if (sub === null) sub = 'push'
@@ -110,8 +116,15 @@ registerGit('stash', (ctx, argv) => {
         ? `On ${branch}: ${message}`
         : `WIP on ${branch}: ${headSha.slice(0, 7)} ${repo.commits[headSha].message.split('\n')[0]}`
     const entry: StashEntry = {
-      id: commitId([msg, headSha, JSON.stringify(wt.index), JSON.stringify(trackedWork), String(ctx.w.clock)].join('|'), (c) =>
-        Object.hasOwn(repo.commits, c),
+      id: commitId(
+        [
+          msg,
+          headSha,
+          JSON.stringify(wt.index),
+          JSON.stringify(trackedWork),
+          String(ctx.w.clock),
+        ].join('|'),
+        (c) => Object.hasOwn(repo.commits, c),
       ),
       message: msg,
       base: headSha,
@@ -125,6 +138,7 @@ registerGit('stash', (ctx, argv) => {
     for (const f of Object.keys(work)) if (!Object.hasOwn(headTree, f)) newWork[f] = work[f]
     ctx.w.files[ctx.w.cwd] = newWork
     ctx.out(`Saved working directory and index state ${msg}`)
+    ctx.note('Saved your changes to the stash and cleared them')
     return
   }
 
@@ -132,10 +146,13 @@ registerGit('stash', (ctx, argv) => {
     if (repo.stash.length === 0) throw new GitError('error: No stash entries found.')
     const found = stashByRef(repo.stash, ref)
     if (found === null)
-      throw new GitError(ref !== null ? `error: ${ref} is not a valid reference` : 'error: No stash entries found.')
+      throw new GitError(
+        ref !== null ? `error: ${ref} is not a valid reference` : 'error: No stash entries found.',
+      )
     const entry = found.entry
     repo.stash.splice(found.index, 1)
     ctx.out(`Dropped refs/${ref === null ? `stash@{${found.index}}` : ref} (${entry.id})`)
+    ctx.note('Dropped a stash entry')
     return
   }
 
@@ -143,7 +160,9 @@ registerGit('stash', (ctx, argv) => {
   if (repo.stash.length === 0) throw new GitError('error: No stash entries found.')
   const found = stashByRef(repo.stash, ref)
   if (found === null)
-    throw new GitError(ref !== null ? `error: ${ref} is not a valid reference` : 'error: No stash entries found.')
+    throw new GitError(
+      ref !== null ? `error: ${ref} is not a valid reference` : 'error: No stash entries found.',
+    )
   const { entry } = found
   const baseTree: Tree = repo.commits[entry.base].tree ?? {}
   const headNowSha = headCommit(repo, wt)
@@ -171,7 +190,10 @@ registerGit('stash', (ctx, argv) => {
     const stashChanged = presenceDiff(shashTarget(entry.workdir[f], entry.index[f]), baseVal)
     const currentChanged = presenceDiff(cur, headNow[f])
     if (stashChanged && currentChanged && stashWork !== cur) {
-      ctx.out('error: Your local changes to the following files would be overwritten by merge:', 'err')
+      ctx.out(
+        'error: Your local changes to the following files would be overwritten by merge:',
+        'err',
+      )
       ctx.out(`\t${f}`, 'err')
       ctx.out('Please commit your changes or stash them before you merge.', 'err')
       ctx.out('Aborting', 'err')
@@ -202,6 +224,9 @@ registerGit('stash', (ctx, argv) => {
   if (sub === 'pop') {
     repo.stash.splice(found.index, 1)
     ctx.out(`Dropped refs/${ref === null ? `stash@{${found.index}}` : ref} (${entry.id})`)
+    ctx.note('Restored the stash and removed it')
+  } else {
+    ctx.note('Restored the stash (entry kept)')
   }
 })
 
