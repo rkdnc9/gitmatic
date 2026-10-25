@@ -2,8 +2,6 @@ import { describe, expect, it } from 'vitest'
 import { exec, text } from '../testing'
 import '../commands'
 
-const commits = (script: string[]) => exec(script).world.repo!.commits
-
 describe('git log', () => {
   it('fails on an unborn branch with the exact message', () => {
     const r = exec(['git init', 'git log'])
@@ -28,7 +26,7 @@ describe('git log', () => {
     const lines = t.split('\n')
     expect(lines[0]).toMatch(/^commit [0-9a-f]{7} \(HEAD -> main\)$/)
     expect(lines[1]).toBe('Author: You <you@gitmatic.dev>')
-    expect(lines[2]).toMatch(/^Date:   .+$/)
+    expect(lines[2]).toMatch(/^Date: {3}.+$/)
     expect(lines[3]).toBe('')
     expect(lines[4]).toBe('    second')
     // newest first
@@ -84,7 +82,9 @@ describe('git log', () => {
       'git commit -m "three"',
       'git log --oneline',
     ])
-    const lines = text(r.last).split('\n').map((l) => l.slice(8))
+    const lines = text(r.last)
+      .split('\n')
+      .map((l) => l.replace(/^\* /, '').replace(/^[0-9a-f]{7}( \([^)]*\))? /, ''))
     expect(lines).toEqual(['three', 'two', 'one'])
   })
 })

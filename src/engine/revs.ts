@@ -72,10 +72,17 @@ function parseSteps(
       if (sawTilde) return null
       i++
       if (i < rev.length && rev[i] === '^') {
-        // `^^` = first parent twice
+        // `^^` = first parent twice: the first caret was already consumed
+        // above, so count the remaining run and add one for it.
         if (caret2 > 0) return null
-        up += 1
-        i++
+        let n = 1
+        while (i < rev.length && rev[i] === '^') {
+          n++
+          i++
+        }
+        up += n
+        // `^N` after a caret run is unsupported (e.g. ^^2).
+        if (i < rev.length && rev[i] === '2') return null
       } else if (i < rev.length && rev[i] === '2') {
         caret2 += 1
         i++

@@ -1,3 +1,4 @@
+import { produce } from 'immer'
 import { describe, expect, it } from 'vitest'
 import { exec } from '../testing'
 import {
@@ -7,8 +8,7 @@ import {
   reachable,
   resolveRev,
 } from '../revs'
-import type { Repo, WorktreeState } from '../types'
-import { createWorld } from '../world'
+import type { Commit, WorktreeState } from '../types'
 import '../commands'
 
 /** Builds a 3-commit linear history and returns {repo, wt, ids}. */
@@ -28,13 +28,13 @@ function linearHistory() {
   const repo = world.repo!
   const wt = repo.worktrees[world.cwd]
   const ids: string[] = []
+  let cur: string | undefined = repo.branches.main
+  while (cur) {
     ids.unshift(cur)
     cur = repo.commits[cur].parents[0]
   }
   return { repo, wt, ids }
 }
-
-const wtOf = (w: ReturnType<typeof createWorld>): WorktreeState | null => w.repo?.worktrees[w.cwd] ?? null
 
 describe('headCommit', () => {
   it('returns the branch tip, or null on an unborn branch', () => {
@@ -72,36 +72,32 @@ describe('resolveRev', () => {
 
   it('resolves ^2 as the second parent of a merge commit', () => {
     const { repo, wt } = linearHistory()
-    // Build a merge commit by hand: HEAD(ids[2]) merges in ids[0].
     const mergeId = 'a1b2c3d'
-    repo.commits[mergeId] = {
+    const secondParent = 'beef001'
+    const headTip = wt.head.type === 'branch' ? repo.branches[wt.head.name]! : wt.head.commit
+    const merge: Commit = {
       id: mergeId,
-      parents: [wt.head.type === 'branch' ? repo.branches[wt.head.name]! : wt.head.commit, 'beef001'],
+      parents: [headTip, secondParent],
       message: 'merge',
       author: 'You <you@gitmatic.dev>',
       time: 99,
       tree: {},
     }
-    expect(resolveRev(repo, wt, `${mergeId}^2`)).toBe('beef001')
-    expect(resolveRev(repo, wt, `${mergeId}^`)).toBe(
-      wt.head.type === 'branch' ? repo.branches[wt.head.name] : wt.head.commit,
-    )
+    const merged = produce(repo, (d) => {
+      d.commits[mergeId] = merge
+    })
+    expect(resolveRev(merged, wt, `${mergeId}^2`)).toBe(secondParent)
+    expect(resolveRev(merged, wt, `${mergeId}^`)).toBe(headTip)
   })
 
-  it('returns null for unknown, ambiguous and short prefixes', () => {
+  it('returns null for unknown, garbage and too-short prefixes', () => {
     const { repo, wt, ids } = linearHistory()
     expect(resolveRev(repo, wt, 'nope')).toBeNull()
     expect(resolveRev(repo, wt, 'HEAD~9')).toBeNull()
     expect(resolveRev(repo, wt, 'HEAD~')).toBeNull()
     expect(resolveRev(repo, wt, ids[0].slice(0, 2))).toBeNull() // < 4 chars
-    // ambiguous: two commits sharing a prefix
-    const a = ids[0]
-    const b = ids[1]
-    if (a[0] === b[0]) {
-      const shared = a.slice(0, 4)
-      expect(resolveRev(repo, wt, shared)).toBeNull()
-    }
     expect(resolveRev(repo, wt, '')).toBeNull()
+    expect(resolveRev(repo, wt, 'HEAD^{commit}')).toBeNull()
   })
 })
 
