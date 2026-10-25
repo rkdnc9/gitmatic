@@ -302,6 +302,8 @@ registerGit('merge', (ctx, argv) => {
       message: message ?? defaultMergeMessage(repo, wt, target, theirSha),
       conflicts,
       origHead: curSha,
+      base: mergeBase(repo, curSha, theirSha) ?? curSha,
+      preWork: null,
     }
     ctx.note(`Merge conflicts in ${conflicts.length} file${conflicts.length === 1 ? '' : 's'}`)
     return

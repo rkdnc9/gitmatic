@@ -20,9 +20,15 @@ export interface Pending {
   message: string
   conflicts: string[]
   origHead: Sha
+  /** Merge "base" commit (cherry-pick: picked commit's parent; revert: the reverted commit). */
+  base: Sha
+  /** Workdir tree snapshot from before the operation, so `--abort` can restore it. */
+  preWork: Record<string, string> | null
 }
 
 export interface StashEntry {
+  /** 7-char commit-style id, generated at push time. */
+  id: Sha
   message: string
   base: Sha
   index: Tree
