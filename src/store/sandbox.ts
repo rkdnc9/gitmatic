@@ -23,6 +23,7 @@ export interface SandboxState {
   saveFile(path: string, content: string): void
   closeEditor(): void
   pushLine(kind: TermLine['kind'], text: string): void
+  openFile(path: string): void
 }
 
 const MAX_LINES = 500
@@ -121,6 +122,9 @@ export const useSandbox = create<SandboxState>()(
 
       pushLine(kind, text) {
         set({ lines: [...get().lines, termLine(kind, text)].slice(-MAX_LINES) })
+      },
+      openFile(path) {
+        set({ editorPath: path })
       },
     }),
     {
