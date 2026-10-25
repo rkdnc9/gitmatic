@@ -1,1 +1,291 @@
 @import 'tailwindcss';
+
+/* GTM-14: free mode screen layout. Functional dark layout — the full visual
+   theme (tokens, BigButton chunkiness) is GTM-15. */
+
+html,
+body {
+  background: #0d1117;
+  color: #e6edf3;
+}
+
+/* ---- shared UI (BigButton, Panel) ---- */
+
+.big-button {
+  font-weight: 700;
+  font-size: 0.95rem;
+  border-radius: 0.5rem;
+  border: 1px solid transparent;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+}
+.big-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.big-button-primary {
+  background: #58a6ff;
+  color: #0d1117;
+}
+.big-button-primary:hover:not(:disabled) {
+  background: #79b8ff;
+}
+.big-button-ghost {
+  background: transparent;
+  border-color: #30363d;
+  color: #e6edf3;
+}
+.big-button-ghost:hover:not(:disabled) {
+  background: #21262d;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid #30363d;
+  border-radius: 0.75rem;
+  background: #161b22;
+}
+.panel-header {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #30363d;
+}
+.panel-header h2 {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #8b949e;
+}
+.panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 0.75rem;
+}
+
+/* ---- free mode screen ---- */
+
+.free-screen {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+.free-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid #30363d;
+  background: #161b22;
+}
+.wordmark {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #58a6ff;
+  text-decoration: none;
+}
+.free-header h1 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #8b949e;
+}
+.free-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-left: auto;
+}
+.free-preset {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: #8b949e;
+}
+.free-preset select {
+  font: inherit;
+  font-size: 0.85rem;
+  color: #e6edf3;
+  background: #21262d;
+  border: 1px solid #30363d;
+  border-radius: 0.4rem;
+  padding: 0.35rem 0.5rem;
+}
+
+.free-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 420px);
+  gap: 1rem;
+  padding: 1rem;
+  flex: 1;
+  align-items: stretch;
+}
+@media (max-width: 900px) {
+  .free-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.free-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+  min-height: 0;
+}
+.free-graph {
+  flex: 1;
+}
+.free-terminal {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+/* SuggestionChips outside the .terminal scope (its own CSS is scoped there). */
+.free-terminal .chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.free-terminal .chip {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.8rem;
+  color: #e6edf3;
+  background: #21262d;
+  border: 1px solid #30363d;
+  border-radius: 0.35rem;
+  padding: 0.2rem 0.55rem;
+  cursor: pointer;
+}
+.free-terminal .chip:hover {
+  border-color: #58a6ff;
+}
+
+.free-side {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.free-side-panel {
+  flex: 1;
+}
+
+/* tabs */
+.tablist {
+  display: flex;
+  gap: 0.25rem;
+  margin: -0.75rem -0.75rem 0;
+}
+.tab {
+  flex: 1;
+  padding: 0.45rem 0.6rem;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #8b949e;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 0.5rem 0.5rem 0 0;
+}
+.tab-active {
+  color: #e6edf3;
+  border-bottom-color: #58a6ff;
+  background: rgba(88, 166, 255, 0.08);
+}
+
+/* "How do I…?" panel */
+.howdoi {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1;
+  min-height: 0;
+}
+.howdoi-search {
+  font-size: 0.9rem;
+  color: #e6edf3;
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 0.5rem;
+  padding: 0.45rem 0.6rem;
+}
+.howdoi-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+.howdoi-item {
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.6rem;
+}
+.howdoi-question {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+.howdoi-why {
+  margin: 0.25rem 0 0.5rem;
+  font-size: 0.8rem;
+  color: #8b949e;
+}
+.howdoi-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.howdoi-cmd {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.8rem;
+  background: #21262d;
+  border: 1px solid #30363d;
+  border-radius: 0.35rem;
+  padding: 0.15rem 0.4rem;
+  overflow-x: auto;
+}
+.howdoi-try {
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #58a6ff;
+  background: #21262d;
+  border: 1px solid #58a6ff;
+  border-radius: 0.35rem;
+  padding: 0.2rem 0.55rem;
+  cursor: pointer;
+}
+.howdoi-try:hover {
+  background: #58a6ff;
+  color: #0d1117;
+}
+.howdoi-empty {
+  padding: 1rem 0;
+  text-align: center;
+  font-size: 0.85rem;
+  color: #8b949e;
+}
+
+/* Files tab */
+.free-files {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 0;
+}
