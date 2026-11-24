@@ -21,21 +21,21 @@ export default function FileEditor({ path }: { path: string }) {
   const save = () => useSandbox.getState().saveFile(path, current.current)
 
   return (
-    <div className="flex flex-col gap-2 rounded-xl border border-zinc-700 bg-zinc-900/40 p-3">
+    <div className="flex flex-col gap-2 rounded-xl border border-[color:var(--border)] bg-[color:var(--panel)] p-3">
       <div className="flex items-center justify-between gap-2">
-        <span className="font-mono text-sm text-zinc-300">{path}</span>
+        <span className="font-mono text-sm text-[color:var(--fg)]">{path}</span>
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={save}
-            className="rounded-md bg-amber-500 px-3 py-1 text-xs font-bold text-zinc-900 hover:bg-amber-400"
+            className="rounded-md bg-[color:var(--accent)] px-3 py-1 text-xs font-bold text-[color:var(--accent-fg)] hover:brightness-110"
           >
             Save
           </button>
           <button
             type="button"
             onClick={() => useSandbox.getState().closeEditor()}
-            className="rounded-md border border-zinc-600 px-3 py-1 text-xs font-bold text-zinc-300 hover:bg-zinc-800"
+            className="rounded-md border border-[color:var(--border)] px-3 py-1 text-xs font-bold text-[color:var(--fg)] hover:bg-[color:var(--chip-bg)]"
           >
             Close
           </button>

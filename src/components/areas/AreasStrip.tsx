@@ -20,7 +20,7 @@ function truncatePath(p: string, max = 24): string {
 }
 
 function Text({ children, muted = false }: { children: string; muted?: boolean }) {
-  return <span className={muted ? 'text-zinc-600' : 'text-zinc-300'}>{children}</span>
+  return <span className={muted ? 'text-[color:var(--muted)]' : 'text-[color:var(--fg)]'}>{children}</span>
 }
 
 function Column({
@@ -34,15 +34,15 @@ function Column({
 }) {
   return (
     <div className="flex min-w-[180px] flex-1 flex-col gap-1" aria-label={ariaLabel}>
-      <h3 className="text-xs font-bold uppercase tracking-wide text-zinc-400">{title}</h3>
+      <h3 className="text-xs font-bold uppercase tracking-wide text-[color:var(--muted)]">{title}</h3>
       {rows.length === 0 ? (
-        <p className="text-sm text-zinc-600">—</p>
+        <p className="text-sm text-[color:var(--muted)]">—</p>
       ) : (
         <ul className="flex flex-col gap-1">
           {rows.map((r) => (
             <li key={r.path} className="flex items-center gap-2 text-sm">
               <Text>{truncatePath(r.path)}</Text>
-              <span className="rounded bg-zinc-800 px-1.5 py-0.5 text-[10px] font-medium text-zinc-400">
+              <span className="rounded bg-[color:var(--chip-bg)] px-1.5 py-0.5 text-[10px] font-medium text-[color:var(--muted)]">
                 [{r.badge}]
               </span>
             </li>
@@ -85,13 +85,13 @@ export default function AreasStrip() {
   }, [world])
 
   return (
-    <div className="flex items-stretch gap-3 rounded-xl border border-zinc-700 bg-zinc-900/40 p-3">
+    <div className="flex items-stretch gap-3 rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] p-3">
       <Column title="Working directory" rows={workRows} ariaLabel="Working directory" />
-      <div className="flex items-center text-zinc-500" aria-hidden="true">
+      <div className="flex items-center text-[color:var(--muted)]" aria-hidden="true">
         -&gt;
       </div>
       <Column title="Staging area" rows={stagedRows} ariaLabel="Staging area" />
-      <div className="flex items-center text-zinc-500" aria-hidden="true">
+      <div className="flex items-center text-[color:var(--muted)]" aria-hidden="true">
         -&gt;
       </div>
       <Column title="Last commit" rows={lastRows} ariaLabel="Last commit" />
